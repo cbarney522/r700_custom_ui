@@ -4,6 +4,7 @@
 #   ETK_DIR=/path/to/etk ./build.sh
 #   SIGN_KEY_DIR=/path/to/keys ./build.sh   (optional: passes -k to cap_gen.sh)
 set -euo pipefail
+trap 'echo "build.sh FAILED at line $LINENO: $BASH_COMMAND" >&2' ERR
 cd "$(dirname "$0")"
 ETK_DIR="${ETK_DIR:-/opt/10.3.0_Octane_Embedded_Development_Tools}"   # FW 10.x needs ETK >= 10.3.0
 CAP_GEN="$ETK_DIR/cap_gen.sh"
@@ -49,7 +50,7 @@ python3 -c "import sys; h=open(sys.argv[1],'rb').read(20); sys.exit(0 if h[:4]==
 # Python needs libgcc_s.so.1. The reader very likely has it; as insurance, bundle the ETK
 # toolchain's aarch64 copy next to libpython (found via Python's RPATH $ORIGIN/../lib).
 if [ ! -f cap/python/lib/libgcc_s.so.1 ]; then
-  GCC_S="$(find "$ETK_DIR" -name libgcc_s.so.1 -path '*aarch64*' 2>/dev/null | head -1)"
+  GCC_S="$(find "$ETK_DIR" -name libgcc_s.so.1 -path '*aarch64*' 2>/dev/null | head -1 || true)"
   if [ -n "$GCC_S" ]; then cp -L "$GCC_S" cap/python/lib/ && echo "Bundled libgcc_s from $GCC_S"
   else echo "Note: no aarch64 libgcc_s.so.1 in the ETK; relying on the reader's copy"; fi
 fi
