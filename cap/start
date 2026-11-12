@@ -23,18 +23,30 @@ export PYTHONDONTWRITEBYTECODE=1    # never write .pyc into the read-only partit
   echo "kernel:  $(uname -a)"
   [ -f /etc/os-release ] && grep -E '^(NAME|VERSION)=' /etc/os-release
   echo "cap_root: $CAP_ROOT"
+  echo "glibc:   $(getconf GNU_LIBC_VERSION 2>/dev/null || ldd --version 2>&1 | head -1)"
+  if [ -x "$CAP_ROOT/python/bin/python3" ]; then
+    echo "bundled python: $("$CAP_ROOT/python/bin/python3" -c 'import sys,ssl; print(sys.version.split()[0], "|", ssl.OPENSSL_VERSION)' 2>&1)"
+  else
+    echo "bundled python: NOT PRESENT"
+  fi
+  echo "libgcc_s: $(ls /lib/libgcc_s.so.1 /usr/lib/libgcc_s.so.1 "$CAP_ROOT/python/lib/libgcc_s.so.1" 2>/dev/null | tr '\n' ' ')"
   for t in python3 python openssl curl busybox bash; do
     p="$(command -v "$t" 2>/dev/null)"; echo "$t: ${p:-NOT FOUND}"
   done
-  command -v python3 >/dev/null && python3 -c 'import sys,ssl,http.server,hashlib; print("python:", sys.version.split()[0], "|", ssl.OPENSSL_VERSION)'
   echo "rw_dir writable: $( (touch "$RW/.probe" && rm -f "$RW/.probe" && echo yes) 2>/dev/null || echo NO)"
   df -h "$CAP_ROOT" "$RW" 2>/dev/null
 } > "$RW/diag.txt" 2>&1
 cat "$RW/diag.txt"
 
-PY="$(command -v python3)"
+# Prefer the Python bundled in the CAP; fall back to a system python3 if one exists.
+PY=""
+if "$CAP_ROOT/python/bin/python3" -c 'import ssl' >/dev/null 2>&1; then
+  PY="$CAP_ROOT/python/bin/python3"
+elif command -v python3 >/dev/null; then
+  PY="$(command -v python3)"
+fi
 if [ -z "$PY" ]; then
-  echo "custom_ui_cap: python3 not found on this reader."
+  echo "custom_ui_cap: no working python3 (bundled or system)."
   # Fallback so diag.txt can still be read from a browser: http://<reader>:$UI_PORT/diag.txt
   if command -v busybox >/dev/null && busybox --list 2>/dev/null | grep -qx httpd; then
     mkdir -p "$RW/diag_www" && cp "$RW/diag.txt" "$RW/diag_www/"

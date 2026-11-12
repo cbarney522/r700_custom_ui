@@ -12,3 +12,6 @@ cap/rw_dir/*
 __pycache__/
 *.pyc
 devdata/
+# bundled Python runtime (downloaded and pruned by build.sh)
+cap/python/
+cap/python.tmp/
