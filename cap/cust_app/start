@@ -1,0 +1,29 @@
+#!/bin/sh
+# CAP entry point: launched by the reader at boot.
+# >>> VERIFY against your R700 ETK guide: the expected entry-point name/location and
+#     the CAP's persistent writable directory (set CAP_DATA_DIR below accordingly).
+CAP_ROOT="$(cd "$(dirname "$0")" && pwd)"
+[ -f "$CAP_ROOT/app.env" ] && . "$CAP_ROOT/app.env"
+export UI_PORT="${UI_PORT:-8443}"
+export CAP_DATA_DIR="${CAP_DATA_DIR:-$CAP_ROOT/data}"
+LOG_DIR="${LOG_DIR:-$CAP_ROOT/log}"
+PIDFILE="${PIDFILE:-/tmp/r700-connector-ui.pid}"
+PY="$(command -v python3 || command -v python)"
+mkdir -p "$LOG_DIR" "$CAP_DATA_DIR" 2>/dev/null
+
+if [ -z "$PY" ]; then
+  echo "$(date) FATAL: no python3 on reader" >> "$LOG_DIR/ui.log"; exit 1
+fi
+
+# Supervisor loop: restart the server if it crashes, with a short back-off.
+(
+  while :; do
+    "$PY" "$CAP_ROOT/app/server.py" --port "$UI_PORT" --data-dir "$CAP_DATA_DIR" >> "$LOG_DIR/ui.log" 2>&1
+    echo "$(date) server exited ($?); restarting in 5 s" >> "$LOG_DIR/ui.log"
+    # keep log bounded (~1 MB)
+    [ "$(wc -c < "$LOG_DIR/ui.log")" -gt 1048576 ] && tail -c 262144 "$LOG_DIR/ui.log" > "$LOG_DIR/ui.log.1" && mv "$LOG_DIR/ui.log.1" "$LOG_DIR/ui.log"
+    sleep 5
+  done
+) &
+echo $! > "$PIDFILE"
+exit 0

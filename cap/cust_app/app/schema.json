@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "title": "R700 Enterprise Connector",
+  "sections": [
+    {
+      "key": "general",
+      "label": "General",
+      "fields": [
+        { "key": "site_id", "label": "Site / plant ID", "type": "text", "default": "", "maxlength": 64,
+          "help": "Included in every payload so the database knows which facility sent it." },
+        { "key": "reader_role", "label": "Reader role", "type": "select", "default": "tool_crib",
+          "options": [
+            { "value": "tool_crib", "label": "Tool crib portal" },
+            { "value": "bin_monitor", "label": "Bin fill-level monitor" },
+            { "value": "dock_door", "label": "Dock door" },
+            { "value": "generic", "label": "Generic reader" }
+          ] },
+        { "key": "log_level", "label": "Log level", "type": "select", "default": "info",
+          "options": [
+            { "value": "error", "label": "Error" },
+            { "value": "warn", "label": "Warning" },
+            { "value": "info", "label": "Info" },
+            { "value": "debug", "label": "Debug" }
+          ] }
+      ]
+    },
+    {
+      "key": "data",
+      "label": "Data to send",
+      "fields": [
+        { "key": "fields", "label": "Payload fields", "type": "multiselect",
+          "default": ["epc", "antenna_port", "timestamp"],
+          "options": [
+            { "value": "epc", "label": "EPC" },
+            { "value": "tid", "label": "TID" },
+            { "value": "user_memory", "label": "USER memory" },
+            { "value": "antenna_port", "label": "Antenna port" },
+            { "value": "rssi", "label": "Peak RSSI" },
+            { "value": "phase", "label": "Phase angle" },
+            { "value": "timestamp", "label": "Timestamp (UTC)" },
+            { "value": "reader_hostname", "label": "Reader hostname" },
+            { "value": "gpi_state", "label": "GPI state" },
+            { "value": "badge_id", "label": "Badge ID (USB reader)" }
+          ] },
+        { "key": "dedupe_mode", "label": "Duplicate filtering", "type": "select", "default": "per_tag_window",
+          "options": [
+            { "value": "none", "label": "None — every raw read" },
+            { "value": "per_tag_window", "label": "Once per tag per time window" },
+            { "value": "per_tag_antenna_window", "label": "Once per tag per antenna per window" },
+            { "value": "state_change", "label": "Only on arrive / depart" }
+          ] },
+        { "key": "dedupe_window_s", "label": "Filter window (seconds)", "type": "number",
+          "default": 5, "min": 0, "max": 3600, "step": 1 },
+        { "key": "payload_format", "label": "Payload format", "type": "select", "default": "json",
+          "options": [
+            { "value": "json", "label": "JSON object per event" },
+            { "value": "json_batch", "label": "JSON array (batched)" },
+            { "value": "csv", "label": "CSV" }
+          ] }
+      ]
+    },
+    {
+      "key": "delivery",
+      "label": "Delivery",
+      "fields": [
+        { "key": "mode", "label": "Send mode", "type": "select", "default": "immediate",
+          "options": [
+            { "value": "immediate", "label": "Immediately per event" },
+            { "value": "interval", "label": "Batch on interval" }
+          ] },
+        { "key": "batch_interval_s", "label": "Batch interval (seconds)", "type": "number",
+          "default": 10, "min": 1, "max": 3600, "step": 1 },
+        { "key": "offline_buffer", "label": "Buffer events locally while endpoints are unreachable",
+          "type": "checkbox", "default": true },
+        { "key": "retry_policy", "label": "Retry policy", "type": "select", "default": "exp_backoff",
+          "options": [
+            { "value": "none", "label": "No retry" },
+            { "value": "fixed", "label": "Fixed interval" },
+            { "value": "exp_backoff", "label": "Exponential backoff with jitter" }
+          ] }
+      ]
+    },
+    {
+      "key": "endpoints",
+      "label": "API endpoints",
+      "type": "list",
+      "max_items": 8,
+      "item_label": "Endpoint",
+      "fields": [
+        { "key": "enabled", "label": "Enabled", "type": "checkbox", "default": true },
+        { "key": "name", "label": "Name", "type": "text", "default": "New endpoint", "maxlength": 64, "required": true },
+        { "key": "url", "label": "URL", "type": "url", "default": "https://", "maxlength": 512, "required": true },
+        { "key": "method", "label": "HTTP method", "type": "select", "default": "POST",
+          "options": [
+            { "value": "POST", "label": "POST" },
+            { "value": "PUT", "label": "PUT" },
+            { "value": "PATCH", "label": "PATCH" }
+          ] },
+        { "key": "auth_type", "label": "Authentication", "type": "select", "default": "bearer",
+          "options": [
+            { "value": "none", "label": "None" },
+            { "value": "bearer", "label": "Bearer token" },
+            { "value": "api_key", "label": "API key header" },
+            { "value": "basic", "label": "HTTP Basic" }
+          ] },
+        { "key": "secret", "label": "Token / key / password", "type": "secret", "default": "", "maxlength": 1024,
+          "help": "Stored on the reader; never sent back to the browser once saved." },
+        { "key": "events", "label": "Send these events", "type": "multiselect",
+          "default": ["tag_read"],
+          "options": [
+            { "value": "tag_read", "label": "Tag reads" },
+            { "value": "tag_depart", "label": "Tag departures" },
+            { "value": "badge_in", "label": "Badge in" },
+            { "value": "badge_out", "label": "Badge out" },
+            { "value": "gpi_change", "label": "GPI change" },
+            { "value": "heartbeat", "label": "Heartbeat" }
+          ] },
+        { "key": "timeout_s", "label": "Timeout (seconds)", "type": "number", "default": 10, "min": 1, "max": 120, "step": 1 },
+        { "key": "verify_tls", "label": "Verify server TLS certificate", "type": "checkbox", "default": true }
+      ]
+    }
+  ]
+}

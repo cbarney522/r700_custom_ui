@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>R700 Connector Settings</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1 id="title">R700 Connector</h1>
+      <div class="sub"><span id="host">—</span> · revision <span id="rev">—</span> · <span id="saved">never saved</span></div>
+    </div>
+    <div class="actions">
+      <a class="btn ghost" href="/api/export">Export</a>
+      <button class="btn ghost" id="pwBtn" type="button">Password</button>
+      <button class="btn ghost" id="revertBtn" type="button" disabled>Revert</button>
+      <button class="btn primary" id="saveBtn" type="button" disabled>Save</button>
+    </div>
+  </header>
+
+  <div id="banners"></div>
+
+  <main>
+    <nav id="tabs" class="tabs" role="tablist"></nav>
+    <form id="form" autocomplete="off" novalidate></form>
+  </main>
+
+  <dialog id="pwDialog">
+    <form method="dialog" id="pwForm">
+      <h2>Change password</h2>
+      <label>Current password <input type="password" id="pwCur" required></label>
+      <label>New password (8+ characters) <input type="password" id="pwNew" minlength="8" required></label>
+      <label>Confirm new password <input type="password" id="pwNew2" minlength="8" required></label>
+      <p class="err" id="pwErr"></p>
+      <div class="actions">
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" id="pwSave" value="default">Change</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

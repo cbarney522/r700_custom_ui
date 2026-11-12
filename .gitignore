@@ -1,0 +1,7 @@
+cap/dist/
+cap/cust_app/data/
+cap/cust_app/log/
+cap/cust_app/app/tls/*.pem
+__pycache__/
+*.pyc
+devdata/
