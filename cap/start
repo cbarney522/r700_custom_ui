@@ -1,0 +1,54 @@
+#!/bin/bash
+# custom_ui_cap — entry point run by the Impinj R700 at boot.
+# The CAP is mounted read-only at /cust; only /cust/rw_dir is writable
+# (see input_manifest.json). Like replenibin, this script runs in the
+# foreground forever and supervises the web UI server.
+#
+# Author: Clifford Barney
+
+CAP_ROOT="$(cd "$(dirname "$0")" && pwd)"
+[ -f "$CAP_ROOT/app.env" ] && . "$CAP_ROOT/app.env"
+UI_PORT="${UI_PORT:-8443}"
+RW="$CAP_ROOT/rw_dir"
+LOG_DIR="$RW/log"
+LOG="$LOG_DIR/ui.log"
+mkdir -p "$LOG_DIR"
+
+export CAP_DATA_DIR="$RW"
+export PYTHONDONTWRITEBYTECODE=1    # never write .pyc into the read-only partition
+
+# ---- startup diagnostics: answers "what does this reader's CAP runtime have?"
+{
+  echo "custom_ui_cap diagnostics  $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  echo "kernel:  $(uname -a)"
+  [ -f /etc/os-release ] && grep -E '^(NAME|VERSION)=' /etc/os-release
+  echo "cap_root: $CAP_ROOT"
+  for t in python3 python openssl curl busybox bash; do
+    p="$(command -v "$t" 2>/dev/null)"; echo "$t: ${p:-NOT FOUND}"
+  done
+  command -v python3 >/dev/null && python3 -c 'import sys,ssl,http.server,hashlib; print("python:", sys.version.split()[0], "|", ssl.OPENSSL_VERSION)'
+  echo "rw_dir writable: $( (touch "$RW/.probe" && rm -f "$RW/.probe" && echo yes) 2>/dev/null || echo NO)"
+  df -h "$CAP_ROOT" "$RW" 2>/dev/null
+} > "$RW/diag.txt" 2>&1
+cat "$RW/diag.txt"
+
+PY="$(command -v python3)"
+if [ -z "$PY" ]; then
+  echo "custom_ui_cap: python3 not found on this reader."
+  # Fallback so diag.txt can still be read from a browser: http://<reader>:$UI_PORT/diag.txt
+  if command -v busybox >/dev/null && busybox --list 2>/dev/null | grep -qx httpd; then
+    mkdir -p "$RW/diag_www" && cp "$RW/diag.txt" "$RW/diag_www/"
+    exec busybox httpd -f -p "$UI_PORT" -h "$RW/diag_www"
+  fi
+  while true; do sleep 3600; done     # stay alive; diagnostics are in the log
+fi
+
+# ---- supervisor loop: restart the server if it exits
+while true; do
+  "$PY" "$CAP_ROOT/app/server.py" --port "$UI_PORT" --data-dir "$RW" >> "$LOG" 2>&1
+  echo "$(date) server exited ($?); restarting in 5 s" >> "$LOG"
+  if [ "$(wc -c < "$LOG")" -gt 1048576 ]; then
+    tail -c 262144 "$LOG" > "$LOG.1" && mv "$LOG.1" "$LOG"
+  fi
+  sleep 5
+done

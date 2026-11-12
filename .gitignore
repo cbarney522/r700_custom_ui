@@ -1,7 +1,14 @@
-cap/dist/
-cap/cust_app/data/
-cap/cust_app/log/
-cap/cust_app/app/tls/*.pem
+# build outputs
+*.upgx
+cap/app/tls/
+# generated into cap/ by cap_gen.sh
+cap/.pad
+cap/.lib/
+cap/manifest.json
+cap/manifest.json.sig
+# runtime data (keep only the README)
+cap/rw_dir/*
+!cap/rw_dir/README.md
 __pycache__/
 *.pyc
 devdata/

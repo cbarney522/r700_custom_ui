@@ -1,0 +1,17 @@
+# custom_ui_cap — upgrade description for cap_gen.sh (ETK 9.1.0 format)
+[Description]
+
+# 4-part version, each 0-255. build.sh names the .upgx from this.
+Version = 1.0.0.1
+
+# R*** = any reader (same as replenibin). Use R700V2 to restrict to v2 hardware.
+Valid Reader Hardware = R***
+
+# Packaged directory; appears on the reader at /cust
+Input Directory = ./cap
+
+# Keep settings, login, TLS cert and logs when a newer custom_ui_cap is installed
+# over this one. (Path relative to the CAP root. Verify on the first upgrade-over-upgrade.)
+Persistent Data = rw_dir
+
+Partition Size = 128

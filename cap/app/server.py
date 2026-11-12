@@ -467,7 +467,7 @@ def main():
     ap.add_argument("--port", type=int, default=int(os.environ.get("UI_PORT", "8443")))
     ap.add_argument("--bind", default=os.environ.get("UI_BIND", "0.0.0.0"))
     ap.add_argument("--data-dir", default=os.environ.get("CAP_DATA_DIR",
-                                                           os.path.join(os.path.dirname(APP_DIR), "data")))
+                                                           os.path.join(os.path.dirname(APP_DIR), "rw_dir")))
     ap.add_argument("--insecure-http", action="store_true", help="serve plain HTTP (bench use only)")
     ap.add_argument("--log-level", default=os.environ.get("UI_LOG_LEVEL", "INFO"))
     args = ap.parse_args()

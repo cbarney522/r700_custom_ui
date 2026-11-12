@@ -1,17 +1,18 @@
-# R700 Connector: CAP with a web configuration UI
+# custom_ui_cap: R700 CAP with a web configuration UI
 
-This is a CAP for the Impinj R700v2 (FW 10.x). It runs a small HTTPS web server on the reader. The server gives you a settings page with dropdowns, checkboxes and a list of endpoints, and it saves your choices to a JSON file on the reader.
+A CAP for the Impinj R700 (built with Octane ETK 9.1.0, same packaging as replenibin_cap). It runs a small HTTPS web server on the reader. The server serves a settings page with dropdowns, checkboxes and a list of API endpoints, and saves your choices to a JSON file on the reader.
 
 ```
-cap/
-  build.sh               packages cust_app/ → dist/*.tgz, and .upgx when ETK_DIR is set
-  cap_description.in     CAP metadata (TEMPLATE: match your ETK's sample)
-  cust_app/
-    start / stop         boot entry point + supervisor loop (auto-restart)
-    app.env              port / data-dir overrides
-    app/server.py        Python 3 standard library only: HTTPS, Basic auth, REST API, validation
-    app/schema.json      single source of truth: drives the UI AND server-side validation
-    app/www/             index.html, app.js, style.css (no CDN; works on an air-gapped plant LAN)
+cap_description.in       cap_gen.sh settings: Version, hardware, Input Directory=./cap, Persistent Data
+build.sh                 runs cap_gen.sh → custom_ui_cap_<version>.upgx
+cap/                     packaged; appears on the reader as /cust (read-only)
+  start                  entry point: logs diagnostics, then supervises the server (foreground, never exits)
+  input_manifest.json    declares rw_dir/ as the only writable directory
+  app.env                port override (default 8443)
+  app/server.py          Python 3 standard library only: HTTPS, Basic auth, REST API, validation
+  app/schema.json        single source of truth: drives the UI AND server-side validation
+  app/www/               index.html, app.js, style.css (no CDN; works on an air-gapped plant LAN)
+  rw_dir/                /cust/rw_dir: config.json, auth.json, tls/, log/, diag.txt
 ```
 
 ![Endpoints tab](docs/ui-endpoints-screenshot.png)
@@ -24,30 +25,30 @@ cap/
 - **TLS** On first boot the server generates a self-signed cert for that reader, if `openssl` exists on the reader. If it doesn't, the server falls back to a cert that `build.sh` bundles into the CAP. That bundled cert is the same on every reader built from that CAP, so treat it as a stopgap.
 - **Other hardening** A write from another site is refused (Origin check). Five wrong passwords lock that address out for 30 s. Passwords are stored as PBKDF2-SHA256 hashes. The page has a strict CSP.
 
-## Build and deploy
+## Build and deploy (WSL)
 ```sh
-cd cap
-ETK_DIR=/path/to/impinj/etk ./build.sh     # → dist/r700-connector.upgx  (+ dist/r700-connector-cap.tgz)
+cd ~/custom_ui_cap
+./build.sh            # ETK defaults to ~/9.1.0_Octane_Embedded_Development_Tools
 ```
-Upload the `.upgx` in the reader's web UI (the same page you use for firmware upgrades), reboot, then open `https://<reader>:8443/`.
+Bump `Version` in `cap_description.in` for each build. Upload `custom_ui_cap_<version>.upgx` in the reader's web UI, reboot if prompted, then browse to `https://<reader>:8443/`.
 
-Bench test on any Linux box, without a reader:
+Read-only rule: anything under `/cust` other than `rw_dir/` must never change at runtime, or the reader disables the CAP. That's why the server writes only to `rw_dir/` and Python bytecode caching is turned off.
+
+Bench test without a reader:
 ```sh
-python3 cap/cust_app/app/server.py --data-dir ./devdata --port 8443   # add --insecure-http to skip TLS
+python3 cap/app/server.py --data-dir ./devdata --port 8443   # add --insecure-http to skip TLS
 ```
 
-## ⚠ Check these against the R700 ETK developer guide (it's behind the Impinj support portal)
-1. **`cap_description.in` fields and `cap_gen` arguments.** Both files are placeholders marked `>>>`.
-2. **Entry point.** Check that the reader runs `start` in the CAP root at boot, or rename it to whatever the ETK expects.
-3. **Persistent writable directory.** The default is `<CAP root>/data`. If the CAP image is mounted read-only, set `CAP_DATA_DIR` in `app.env` to the writable path the ETK documents. If the directory can't be written, the UI shows a red banner and refuses to save. It never silently writes somewhere that won't survive a reboot.
-4. **Python 3 in the FW 10.x CAP runtime.** The server needs only the standard library, Python 3.7 or newer.
-5. **Port 8443 reachable through the reader's firewall.** Pick a port that doesn't clash with the reader's own web UI (80/443) or the IoT Device Interface.
+## Still to confirm on a reader
+1. **Python 3 in the CAP runtime.** `start` writes `rw_dir/diag.txt` and prints it at boot, so it shows up wherever replenibin's `echo` output went. If python3 is missing and busybox httpd exists, `start` serves that report at `http://<reader>:8443/diag.txt`.
+2. **Port 8443 reachable** through the reader's firewall.
+3. **`Persistent Data = rw_dir`** keeps settings across a CAP upgrade (test by installing 1.0.0.2 over 1.0.0.1).
 
 ## Using the settings from the connector process
 Your worker (the process that reads tags and posts to the APIs) reads the same file. It can poll the file's modification time, or `revision`, to pick up changes without a restart:
 ```python
 import json, os
-PATH = os.path.join(os.environ.get("CAP_DATA_DIR", "/cust_app/data"), "config.json")
+PATH = os.path.join(os.environ.get("CAP_DATA_DIR", "/cust/rw_dir"), "config.json")
 _last = None
 def settings_if_changed():
     global _last

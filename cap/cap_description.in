@@ -1,6 +1,0 @@
-# >>> TEMPLATE — copy the field names/format from the cap_description.in sample shipped
-#     with your R700 ETK (Impinj support portal); the keys below are placeholders.
-NAME=r700-connector
-VERSION=0.1.0
-DESCRIPTION=Enterprise connector with web configuration UI (https://<reader>:8443/)
-VENDOR=Clifford Barney

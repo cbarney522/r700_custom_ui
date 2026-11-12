@@ -1,5 +1,0 @@
-#!/bin/sh
-PIDFILE="${PIDFILE:-/tmp/r700-connector-ui.pid}"
-[ -f "$PIDFILE" ] && kill "$(cat "$PIDFILE")" 2>/dev/null
-pkill -f "app/server.py" 2>/dev/null
-rm -f "$PIDFILE"
