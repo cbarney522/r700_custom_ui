@@ -1,0 +1,11 @@
+Add R700 CAP with custom web configuration UI
+
+Python 3 (stdlib-only) HTTPS server with Basic auth, schema-driven
+settings UI (dropdowns, checkbox groups, endpoint list), atomic JSON
+settings file with backup and revision-based conflict detection,
+CAP start/stop scripts with supervisor loop, and build.sh packaging.
+ETK-specific items (cap_description.in, cap_gen args, entry point,
+writable data dir) are marked >>> for verification.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_015Kseh78WmqAQURpE1DACNF
